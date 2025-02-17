@@ -1,21 +1,20 @@
 # syntax=docker/dockerfile:1.5
 
-# Use the official PHP image as the base image
+# Utiliser l'image PHP officielle
 FROM php:8.2-apache
 
 ARG ROBOTS_TXT_DISALLOW=1
 
-# Disable apt docker cleanup
+# Désactiver le nettoyage de apt
 RUN rm /etc/apt/apt.conf.d/docker-clean && \
     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 
-# Set working directory
+# Définir le répertoire de travail
 WORKDIR /var/www/html
 
-# Install system dependencies
+# Installer les dépendances système
 
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-
 
 RUN --mount=type=cache,target=/var/cache/apt --mount=type=cache,target=/var/lib/apt <<EOF
 set -ex
@@ -40,36 +39,29 @@ docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
 chmod +x /usr/local/bin/install-php-extensions && sync
 install-php-extensions http zip
 
-# pecl install raphf propro
-# docker-php-ext-enable raphf propro
-# pecl install pecl_http
-# echo "extension=http.so" > /usr/local/etc/php/conf.d/docker-php-ext-http.ini
-
 sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf
 a2enmod rewrite
 
 EOF
 
-# Set higher upload size
+# Augmenter la taille d'upload
 RUN { \
     echo "upload_max_filesize=50M"; \
     echo "post_max_size=50M"; \
 } > /usr/local/etc/php/conf.d/uploads.ini
 
-# Install Composer
+# Installer Composer
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
-# Copy composer requirements
-COPY composer.* .
+# Copier les fichiers composer.* depuis le répertoire server
+COPY ./server/composer.* .
 
-# Run Composer without scripts
+# Exécuter Composer sans scripts
 RUN --mount=type=cache,target=/root/.composer \
     composer install --optimize-autoloader --no-dev --no-scripts
 
-
-
-# Copy existing application directory contents
-COPY --chown=www-data:www-data . .
+# Copier le contenu de l'application depuis le dossier server
+COPY --chown=www-data:www-data ./server /var/www/html
 
 RUN <<EOF
 set -ex
@@ -77,18 +69,19 @@ set -ex
 if [ "x${ROBOTS_TXT_DISALLOW}" = "x1" ]; then
     echo "User-agent: *\nDisallow: /" > public/robots.txt
 fi
-
-
 EOF
 
-# Run Composer WITH scripts
-
+# Exécuter Composer avec scripts
 RUN --mount=type=cache,target=/root/.composer \
     composer install --optimize-autoloader --no-dev
 
-# Change current user to www
+COPY ./server/.docker/entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Changer l'utilisateur courant en www-data
 USER www-data
 
 EXPOSE 80
-ENTRYPOINT [ ".docker/entrypoint.sh" ]
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["apache2-foreground"]
