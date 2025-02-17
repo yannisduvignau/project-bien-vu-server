@@ -47,7 +47,7 @@ jobs:
     - name: Configure PostgreSQL
       run: |
         sudo apt-get install -y postgresql-client
-        PGPASSWORD=bienvu_password psql -h localhost -U bienvu_db -c "CREATE DATABASE bienvu_db;"
+        PGPASSWORD=bienvu_password psql -h localhost -U bienvu_client -c "CREATE DATABASE bienvu_db;"
 
     - name: Run Migrations
       env:
