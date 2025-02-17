@@ -20,7 +20,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres"
+          --health-cmd "pg_isready -U bienvu_client"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -47,7 +47,7 @@ jobs:
     - name: Configure PostgreSQL
       run: |
         sudo apt-get install -y postgresql-client
-        PGPASSWORD=password psql -h localhost -U postgres -c "CREATE DATABASE laravel;"
+        PGPASSWORD=bienvu_password psql -h localhost -U bienvu_client -c "CREATE DATABASE bienvu_db;"
 
     - name: Run Migrations
       env:
