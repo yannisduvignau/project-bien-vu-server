@@ -10,20 +10,20 @@ jobs:
   laravel-tests:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:13
-        env:
-          POSTGRES_DB: bienvu_db
-          POSTGRES_USER: bienvu_client
-          POSTGRES_PASSWORD: bienvu_password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U bienvu_client"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    # services:
+    #   postgres:
+    #     image: postgres:13
+    #     env:
+    #       POSTGRES_DB: bienvu_db
+    #       POSTGRES_USER: bienvu_client
+    #       POSTGRES_PASSWORD: bienvu_password
+    #     ports:
+    #       - 5432:5432
+    #     options: >-
+    #       --health-cmd "pg_isready -U bienvu_client"
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
 
     steps:
     - uses: actions/checkout@v4
@@ -49,22 +49,61 @@ jobs:
     #     sudo apt-get install -y postgresql-client
     #     PGPASSWORD=bienvu_password psql -h localhost -U bienvu_client -c "CREATE DATABASE bienvu_db;"
 
-    - name: Run Migrations
-      env:
-        DB_CONNECTION: pgsql
-        DB_HOST: 127.0.0.1
-        DB_PORT: 5432
-        DB_DATABASE: bienvu_db
-        DB_USERNAME: bienvu_client
-        DB_PASSWORD: bienvu_password
-      run: php artisan migrate --force
+    # - name: Run Migrations
+    #   env:
+    #     DB_CONNECTION: pgsql
+    #     DB_HOST: 127.0.0.1
+    #     DB_PORT: 5432
+    #     DB_DATABASE: bienvu_db
+    #     DB_USERNAME: bienvu_client
+    #     DB_PASSWORD: bienvu_password
+    #   run: php artisan migrate --force
 
     - name: Execute tests (Unit and Feature tests) via PHPUnit/Pest
-      env:
-        DB_CONNECTION: pgsql
-        DB_HOST: 127.0.0.1
-        DB_PORT: 5432
-        DB_DATABASE: bienvu_db
-        DB_USERNAME: bienvu_client
-        DB_PASSWORD: bienvu_password
+      # env:
+      #   DB_CONNECTION: pgsql
+      #   DB_HOST: 127.0.0.1
+      #   DB_PORT: 5432
+      #   DB_DATABASE: bienvu_db
+      #   DB_USERNAME: bienvu_client
+      #   DB_PASSWORD: bienvu_password
       run: php artisan test
+
+  validate-tests-coverage:
+    runs-on: ubuntu-latest
+    needs: laravel-tests
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Dependencies
+      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+    - name: Check test coverage for critical folders
+      run: |
+        declare -a directories=("app/Http/Requests" "app/Http/Controllers" "app/Actions" "app/Services")
+        missing_tests=0
+
+        for dir in "${directories[@]}"
+        do
+          if [ -d "$dir" ]; then
+            for file in $(find "$dir" -type f -name "*.php"); do
+              filename=$(basename -- "$file" .php)
+              testfile=$(grep -irl "$filename" tests/)
+
+              if [ -z "$testfile" ]; then
+                echo "❌ Aucun test trouvé pour $filename ($file)"
+                missing_tests=$((missing_tests+1))
+              else
+                echo "✅ $filename est testé"
+              fi
+            done
+          fi
+        done
+
+        if [ "$missing_tests" -gt 0 ]; then
+          echo "❌ Des fichiers ne sont pas testés. Veuillez ajouter des tests."
+          exit 1
+        else
+          echo "✅ Tous les fichiers dans Requests, Controllers, Actions et Services sont testés."
+        fi

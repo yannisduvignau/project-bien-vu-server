@@ -2,157 +2,124 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\OpenAIEstimateAction;
+use App\Actions\ScriptMistralAction;
+use App\Http\Requests\AnalyserRequest;
+use App\Http\Requests\EstimerRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class IAController extends Controller
 {
+    public function __construct(
+        private ScriptMistralAction $executeScript
+    ) {
+    }
+
     /**
-     * Analyse une annonce immobilière et détecte les incohérences ou erreurs.
+     * POST : Analyses a property advertisement and detects inconsistencies or errors.
      */
-    public function analyserAnnonce(Request $request)
+    public function analyserAnnonce(AnalyserRequest $request)
     {
-        $texte = $request->input('texte');
+        $validated = $request->validated();
+        $description = $validated['description'];
 
-        if (!$texte) {
+        $script = storage_path('scripts/analyser_annonce.py');
+        $output = $this->executeScript->execute($script, $description);
+        Log::info("Réponse brute de l'IA : " . $output);
+
+        $response = $this->cleaningIAResponseMd($output);
+
+        return response()->json($response);
+
+        // return response()->json([
+        //     'coherence' => $response['coherence'],
+        //     'erreurs' => $response['erreurs'],
+        //     'fiabilite' => $response['fiabilite']
+        // ]);
+    }
+
+
+    /**
+     * POST : Estimate the price of a property by extracting information from a text.
+     */
+    public function estimerPrix(EstimerRequest $request)
+    {
+        $validated = $request->validated();
+        $description = $validated['description'];
+
+        $script = storage_path('scripts/estimer_prix.py');
+        $output = $this->executeScript->execute($script, $description);
+        Log::info("Réponse brute de l'IA : " . $output);
+
+        $response = $this->cleaningIAResponseMd($output);
+
+        // return response()->json([
+        //     'prix_min' => $response['prix_min'] ?? null,
+        //     'prix_max' => $response['prix_max'] ?? null,
+        //     'prix_moyen' => isset($response['prix_moyen']) ? round($response['prix_moyen']) : null,
+        //     'confiance' => $response['confiance'] ?? null
+        // ]);
+
+        return $response;
+    }
+    public function estimerPrixOpenAI(EstimerRequest $request)
+    {
+        $validated = $request->validated();
+        $description = $validated['description'];
+
+        // Appel de l'action OpenAI pour estimer le prix
+        $openAIEstimateAction = new OpenAIEstimateAction();
+        $result = $openAIEstimateAction->execute($description);
+
+        if (isset($result['error'])) {
             return response()->json([
-                'message' => 'Aucune donnée fournie'
-            ], 400);
+                'message' => $result['error']
+            ], 500);
         }
-
-        // Extraction des informations
-        $data = $this->extraireInformations($texte);
-
-        if (!$data) {
-            return response()->json([
-                'message' => 'Impossible d’extraire les informations'
-            ], 400);
-        }
-
-        // Vérification des incohérences
-        $erreurs = [];
-
-        if ($data['prix'] < 50000 || $data['prix'] > 2000000) {
-            $erreurs[] = "Le prix semble incohérent.";
-        }
-
-        if ($data['surface'] < 15 && $data['prix'] > 500000) {
-            $erreurs[] = "Surface trop petite pour un tel prix.";
-        }
-
-        // Score de qualité simulé
-        $qualite_score = rand(50, 100);
 
         return response()->json([
-            'coherence' => empty($erreurs),
-            'erreurs' => $erreurs,
-            'qualite_score' => $qualite_score
+            'prix_estime' => $result['prix_estime']
         ]);
     }
 
     /**
-     * Estime le prix d'un bien immobilier en extrayant les informations d’un texte.
-     */
-    public function estimerPrix(Request $request)
-    {
-        $texte = $request->input('texte');
-
-        if (!$texte) {
-            return response()->json([
-                'message' => 'Aucune donnée fournie'
-            ], 400);
-        }
-
-        // Extraction des informations
-        $data = $this->extraireInformations($texte);
-
-        if (!$data) {
-            return response()->json([
-                'message' => 'Impossible d’extraire les informations'
-            ], 400);
-        }
-
-        // Simulation d'une estimation (exemple basique)
-        $base_prix_m2 = 5000; // Prix moyen au m² fictif
-        $coeff_etat = ($data['etat'] == 'neuf') ? 1.2 : (($data['etat'] == 'bon') ? 1 : 0.8);
-
-        $prix_moyen = $data['surface'] * $base_prix_m2 * $coeff_etat;
-        $prix_min = round($prix_moyen * 0.9);
-        $prix_max = round($prix_moyen * 1.1);
-        $confiance = rand(80, 95);
-
-        return response()->json([
-            'prix_min' => $prix_min,
-            'prix_max' => $prix_max,
-            'prix_moyen' => round($prix_moyen),
-            'confiance' => $confiance
-        ]);
-    }
-
-    /**
-     * Génère une annonce immobilière à partir des informations extraites.
-     */
-    // public function genererAnnonce(Request $request)
-    // {
-    //     $texte = $request->input('texte');
-
-    //     if (!$texte) {
-    //         return response()->json([
-    //             'message' => 'Aucune donnée fournie'
-    //         ], 400);
-    //     }
-
-    //     // Extraction des informations
-    //     $data = $this->extraireInformations($texte);
-
-    //     if (!$data) {
-    //         return response()->json([
-    //             'message' => 'Impossible d’extraire les informations'
-    //         ], 400);
-    //     }
-
-    //     // Génération de l’annonce
-    //     $annonce = "Découvrez ce magnifique {$data['type']} de {$data['surface']} m² situé à {$data['ville']}. " .
-    //                "Composé de {$data['pieces']} pièces, ce bien {$data['etat']} est une opportunité rare. " .
-    //                "Prix : {$data['prix']} €.";
-
-    //     return response()->json([
-    //         'annonce' => $annonce
-    //     ]);
-    // }
-    /**
-     * Génère un texte d’annonce immobilière optimisé.
+     * POST : Generate an optimised property ad text.
      */
     public function genererAnnonce(Request $request)
     {
-        $data = $request->validate([
-            'type'                   => 'required|string|in:appartement,maison',
-            'surface'                => 'required|numeric|min:10',
-            'pieces'                 => 'required|integer|min:1',
-            'ville'                  => 'required|string',
-            'quartier'               => 'nullable|string',
-            'prix'                   => 'required|numeric|min:10000',
-            'description_supplementaire' => 'nullable|string',
-        ]);
+        $type = $request->input('type');
+        $surface = $request->input('surface');
+        $pieces = $request->input('pieces');
+        $ville = $request->input('ville');
 
-        // Construire l'annonce
-        $annonce = "Découvrez cette superbe " . $data['type'] . " de " . $data['surface'] . " m² située à " . $data['ville'];
+        $data = [
+            'type' => $type,
+            'surface' => $surface,
+            'pieces' => $pieces,
+            'ville' => $ville
+        ];
 
-        if (!empty($data['quartier'])) {
-            $annonce .= ", dans le quartier prisé de " . $data['quartier'];
+        $script = storage_path('scripts/generer_annonce.py');
+
+        $output = $this->executeScript->execute($script, $data);
+        Log::info("Réponse brute de l'IA : " . $output);
+
+        // 🔹 Étape 1 : Décoder la première réponse JSON
+        $decodedOutput = json_decode($output, true);
+
+        if (!isset($decodedOutput['data'])) {
+            Log::error("Réponse mal formatée : " . $output);
+            return response()->json([
+                'message' => 'Erreur lors de l\'extraction des données'
+            ], 500);
         }
 
-        $annonce .= ". Avec ses " . $data['pieces'] . " pièces spacieuses";
+        $annonce = $decodedOutput['data']; // Contient le JSON sous forme de texte + explications
 
-        if (!empty($data['description_supplementaire'])) {
-            $annonce .= ", " . $data['description_supplementaire'];
-        }
-
-        $annonce .= ", ce bien est une opportunité rare sur le marché. Prix : " . number_format($data['prix'], 0, ',', ' ') . "€.";
-
-        return response()->json([
-            'annonce' => $annonce,
-        ], 200);
+        return response()->json(['annonce' => $annonce]);
     }
+
 
     /**
      * Extraction des informations depuis un texte brut.
@@ -165,18 +132,66 @@ class IAController extends Controller
         preg_match('/(\d+)\s?(pièce|chambre|pièces|chambres)/i', $texte, $pieces);
         preg_match('/(\d{5})/', $texte, $code_postal);
         preg_match('/(neuf|bon état|rénové|ancien)/i', $texte, $etat);
-        preg_match('/(\d{5,8})\s?€?/i', $texte, $prix);
+        preg_match('/(\d{1,3}(?:[\s,]\d{3})*(?:[\.,]?\d{2})?)\s?€?/i', $texte, $prix); // Expression améliorée pour capturer les prix avec des espaces ou des virgules
         preg_match('/(Paris|Lyon|Marseille|Bordeaux|Nice|Toulouse|Nantes)/i', $texte, $ville);
 
         // Nettoyage des résultats
         return [
             'type' => $type[1] ?? 'appartement',
-            'surface' => isset($surface[1]) ? intval($surface[1]) : null,
+            'surface' => isset($surface[1]) ? intval(str_replace([' ', ','], '', $surface[1])) : null, // Nettoyage du texte
             'pieces' => isset($pieces[1]) ? intval($pieces[1]) : null,
             'ville' => $ville[1] ?? 'Non spécifié',
             'code_postal' => $code_postal[1] ?? 'Non spécifié',
             'etat' => $etat[1] ?? 'bon état',
-            'prix' => isset($prix[1]) ? intval($prix[1]) : null
+            'prix' => isset($prix[1]) ? intval(str_replace([' ', ','], '', $prix[1])) : null // Nettoyage du prix
         ];
+    }
+
+    private function cleaningIAResponseMd($output)
+    {
+        // 🔹 Étape 1 : Décoder la première réponse JSON
+        $decodedOutput = json_decode($output, true);
+
+        if (!isset($decodedOutput['data'])) {
+            Log::error("Réponse mal formatée : " . $output);
+            return response()->json([
+                'message' => 'Erreur lors de l\'extraction des données'
+            ], 500);
+        }
+
+        $prixEstime = $decodedOutput['data']; // Contient le JSON sous forme de texte + explications
+
+        // 🔹 Étape 2 : Extraire le JSON de la réponse de l'IA
+        $jsonString = null;
+
+        if (preg_match('/```json\s*([\s\S]*?)\s*```/', $prixEstime, $matches)) {
+            $jsonString = $matches[1]; // Extraction propre du JSON
+        } elseif (preg_match('/\{.*?\}/s', $prixEstime, $matches)) {
+            $jsonString = $matches[0]; // Extraction alternative
+        }
+
+        if (!$jsonString) {
+            Log::error("Erreur lors de l'extraction du JSON : " . $prixEstime);
+            return response()->json([
+                'message' => 'Erreur lors de l\'extraction des données'
+            ], 500);
+        }
+
+        // 🔹 Étape 3 : Nettoyage et décodage du JSON extrait
+        $jsonString = trim($jsonString);
+        $jsonString = preg_replace('/[\x00-\x1F\x7F]/u', '', $jsonString);
+
+        Log::info("Après extraction et nettoyage : " . $jsonString);
+
+        $response = json_decode($jsonString, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            Log::error("Erreur de décodage JSON : " . json_last_error_msg());
+            return response()->json([
+                'message' => 'Erreur lors de l\'estimation du prix'
+            ], 500);
+        }
+
+        return $response;
     }
 }

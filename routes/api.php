@@ -1,6 +1,12 @@
 <?php
 
+use App\Http\Controllers\Scraping\BieniciScraperController;
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\Scraping\FonciaScraperController;
 use App\Http\Controllers\IAController;
+use App\Http\Controllers\Scraping\LeboncoinScraperController;
+use App\Http\Controllers\Scraping\LogicimmoScraperController;
+use App\Http\Controllers\Scraping\SelogerScraperController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,7 +26,21 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('ia')
     ->name('ia.')
     ->group(function () {
-        Route::post('/analyse', [IAController::class, 'analyse'])->name('analyse');
-        Route::post('/estimation', [IAController::class, 'estimation'])->name('estimation');
-        Route::post('/generation', [IAController::class, 'generation'])->name('generation');
+        Route::post('/analyse', [IAController::class, 'analyserAnnonce'])->name('analyse');
+        Route::post('/estimation', [IAController::class, 'estimerPrix'])->name('estimation');
+        Route::post('/generation', [IAController::class, 'genererAnnonce'])->name('generation');
     });
+
+Route::prefix('scrape')
+    ->name('scrape.')
+    ->group(function () {
+        Route::post('/seloger', [SelogerScraperController::class, 'scrape'])->name('seloger');
+        Route::post('/leboncoin', [LeboncoinScraperController::class, 'scrape'])->name('leboncoin');
+        Route::post('/logicimmo', [LogicimmoScraperController::class, 'scrape'])->name('logicimmo');
+        Route::post('/foncia', [FonciaScraperController::class, 'scrape'])->name('foncia');
+        Route::post('/bienici', [BieniciScraperController::class, 'scrape'])->name('bienici');
+    });
+
+Route::get('/dpe', [Controller::class, 'getDpe']);
+Route::get('/loyers/tendance', [Controller::class, 'getRentTrend']);
+Route::get('/estimation', [Controller::class, 'estimatePropertyPrice']);
