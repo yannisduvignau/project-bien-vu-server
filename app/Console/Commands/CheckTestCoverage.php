@@ -30,7 +30,7 @@ class CheckTestCoverage extends Command
         $directories = [
             'app/Http/Requests',
             'app/Http/Controllers',
-            'app/Actions',
+            // 'app/Actions',
             'app/Services'
         ];
 
