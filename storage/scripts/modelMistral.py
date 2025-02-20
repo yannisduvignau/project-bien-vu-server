@@ -17,7 +17,7 @@ def getClient():
 def getModel():
  return "mistral-large-latest"
 
-def requestMistral(prompt):
+def requestModelAI(prompt):
     model = getModel()
     client = getClient()
 

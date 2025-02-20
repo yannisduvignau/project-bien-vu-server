@@ -1,6 +1,6 @@
 import sys
 import json
-import modelMistral
+import modelMistral as modelAI
 
 try:
     requestValidated = json.loads(sys.argv[1])
@@ -16,7 +16,7 @@ try:
     prompt = (f"Générez une description optimisée et courte sans style pour un bien immobilier de type {requestValidated['type']}, "
              f"surface de {requestValidated['surface']} m², avec {requestValidated['pieces']} pièces, situé à {requestValidated['ville']}.")
 
-    data = modelMistral.requestMistral(prompt)
+    data = modelAI.requestModelAI(prompt)
 
     print(json.dumps({"data": data}))
 

@@ -17,13 +17,14 @@ class ScrapingRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
             'url' => [
                 'required',
+                'string',
                 'url',
             ],
         ];
@@ -38,6 +39,7 @@ class ScrapingRequest extends FormRequest
     {
         return [
             'url.required' => __('validation.scraping.url.required'),
+            'url.string' => __('validation.scraping.url.string'),
             'url.url' => __('validation.scraping.url.url'),
         ];
     }

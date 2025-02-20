@@ -2,123 +2,154 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\OpenAIEstimateAction;
+use App\Actions\OpenAIRequestAction;
 use App\Actions\ScriptMistralAction;
 use App\Http\Requests\AnalyserRequest;
 use App\Http\Requests\EstimerRequest;
+use App\Http\Requests\GenererRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\JsonResponse;
 
 class IAController extends Controller
 {
     public function __construct(
-        private ScriptMistralAction $executeScript
-    ) {
-    }
+        private ScriptMistralAction $executeScript,
+        private OpenAIRequestAction $openIARequest,
+    ) {}
 
     /**
      * POST : Analyses a property advertisement and detects inconsistencies or errors.
      */
-    public function analyserAnnonce(AnalyserRequest $request)
+    // public function analyserAnnonce(AnalyserRequest $request)
+    // {
+    //     $validated = $request->validated();
+    //     $description = $validated['description'];
+
+    //     $cleanedDescription = preg_replace("/['\",]/", "", $description);
+
+    //     $script = storage_path('scripts/analyser_annonce.py');
+    //     $output = $this->executeScript->execute($script, $cleanedDescription);
+    //     Log::info("Réponse brute de l'IA : " . $output);
+
+    //     $response = $this->cleaningIAResponseMd($output);
+
+    //     return response()->json($response);
+    // }
+
+    public function analyserAnnonce(AnalyserRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $description = $validated['description'];
+        $description = trim(strip_tags($validated['description']));
 
-        $script = storage_path('scripts/analyser_annonce.py');
-        $output = $this->executeScript->execute($script, $description);
-        Log::info("Réponse brute de l'IA : " . $output);
+        $promptBase = env("PROMPT_ANALYSER");
+        $model = env("MODEL_ANALYSER", "gpt-4-turbo");
+        $roleSystem = env("ROLE_SYSTEM_ANALYSER", "Vous êtes un expert en analyse d'annonces immobilières.");
+        $temperature = env("TEMPERATURE_ANALYSER", 0.5);
 
-        $response = $this->cleaningIAResponseMd($output);
+        if (!$promptBase) {
+            Log::error("PROMPT_ANALYSER est manquant dans le fichier .env");
+            return response()->json(['error' => 'Configuration du serveur incorrecte.'], 500);
+        }
 
-        return response()->json($response);
+        $prompt = sprintf("%s\nAnnonce : %s", $promptBase, $description);
 
-        // return response()->json([
-        //     'coherence' => $response['coherence'],
-        //     'erreurs' => $response['erreurs'],
-        //     'fiabilite' => $response['fiabilite']
-        // ]);
+        try {
+            $output = $this->openIARequest->execute($model, $roleSystem, $prompt, (float) $temperature);
+            Log::info("Réponse brute de l'IA : " . $output);
+
+            $decodedOutput = json_decode($output, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decodedOutput)) {
+                Log::error("Réponse JSON invalide : " . $output);
+                return response()->json(['error' => 'Réponse de l\'IA mal formatée.'], 500);
+            }
+
+            return response()->json($decodedOutput);
+        } catch (\Throwable $e) {
+            Log::error('Erreur lors de l\'analyse de l\'annonce : ' . $e->getMessage());
+            return response()->json(['error' => 'Erreur lors de l\'analyse de l\'annonce.'], 500);
+        }
     }
+
 
 
     /**
      * POST : Estimate the price of a property by extracting information from a text.
      */
-    public function estimerPrix(EstimerRequest $request)
+    public function estimerPrix(EstimerRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $description = $validated['description'];
+        $description = trim(strip_tags($validated['description']));
 
-        $script = storage_path('scripts/estimer_prix.py');
-        $output = $this->executeScript->execute($script, $description);
-        Log::info("Réponse brute de l'IA : " . $output);
+        $promptBase = env("PROMPT_ESTIMER");
+        $model = env("MODEL_ESTIMER", "gpt-4-turbo");
+        $roleSystem = env("ROLE_SYSTEM_ESTIMER", "Vous êtes un expert en estimation immobilière.");
+        $temperature = env("TEMPERATURE_ESTIMER", 0.5);
 
-        $response = $this->cleaningIAResponseMd($output);
-
-        // return response()->json([
-        //     'prix_min' => $response['prix_min'] ?? null,
-        //     'prix_max' => $response['prix_max'] ?? null,
-        //     'prix_moyen' => isset($response['prix_moyen']) ? round($response['prix_moyen']) : null,
-        //     'confiance' => $response['confiance'] ?? null
-        // ]);
-
-        return $response;
-    }
-    public function estimerPrixOpenAI(EstimerRequest $request)
-    {
-        $validated = $request->validated();
-        $description = $validated['description'];
-
-        // Appel de l'action OpenAI pour estimer le prix
-        $openAIEstimateAction = new OpenAIEstimateAction();
-        $result = $openAIEstimateAction->execute($description);
-
-        if (isset($result['error'])) {
-            return response()->json([
-                'message' => $result['error']
-            ], 500);
+        if (!$promptBase) {
+            Log::error("PROMPT_ESTIMER est manquant dans le fichier .env");
+            return response()->json(['error' => 'Configuration du serveur incorrecte.'], 500);
         }
 
-        return response()->json([
-            'prix_estime' => $result['prix_estime']
-        ]);
+        $prompt = sprintf("%s\nAnnonce : %s", $promptBase, $description);
+
+        try {
+            $output = $this->openIARequest->execute($model, $roleSystem, $prompt, (float) $temperature);
+            Log::info("Réponse brute de l'IA : " . $output);
+
+            $decodedOutput = json_decode($output, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decodedOutput)) {
+                Log::error("Réponse JSON invalide : " . $output);
+                return response()->json(['error' => 'Réponse de l\'IA mal formatée.'], 500);
+            }
+
+            return response()->json($decodedOutput);
+        } catch (\Throwable $e) {
+            Log::error('Erreur lors de l\'estimation de l\'annonce : ' . $e->getMessage());
+            return response()->json(['error' => 'Erreur lors de l\'estimation de l\'annonce.'], 500);
+        }
     }
 
     /**
      * POST : Generate an optimised property ad text.
      */
-    public function genererAnnonce(Request $request)
+    public function genererAnnonce(GenererRequest $request): JsonResponse
     {
-        $type = $request->input('type');
-        $surface = $request->input('surface');
-        $pieces = $request->input('pieces');
-        $ville = $request->input('ville');
+        // Validation stricte des données entrantes
+        $validated = $request->validated();
 
-        $data = [
-            'type' => $type,
-            'surface' => $surface,
-            'pieces' => $pieces,
-            'ville' => $ville
-        ];
+        // Vérification des variables d'environnement
+        $promptTemplate = env("PROMPT_GENERER");
+        $model = env("MODEL_GENERER", "gpt-4-turbo");
+        $roleSystem = env("ROLE_SYSTEM_GENERER", "Vous êtes un expert en rédaction d'annonces immobilières.");
+        $temperature = env("TEMPERATURE_GENERER", 0.5);
 
-        $script = storage_path('scripts/generer_annonce.py');
-
-        $output = $this->executeScript->execute($script, $data);
-        Log::info("Réponse brute de l'IA : " . $output);
-
-        // 🔹 Étape 1 : Décoder la première réponse JSON
-        $decodedOutput = json_decode($output, true);
-
-        if (!isset($decodedOutput['data'])) {
-            Log::error("Réponse mal formatée : " . $output);
-            return response()->json([
-                'message' => 'Erreur lors de l\'extraction des données'
-            ], 500);
+        if (!$promptTemplate) {
+            Log::error("PROMPT_GENERER est manquant dans le fichier .env");
+            return response()->json(['error' => 'Configuration du serveur incorrecte.'], 500);
         }
 
-        $annonce = $decodedOutput['data']; // Contient le JSON sous forme de texte + explications
+        // Construction sécurisée du prompt
+        $prompt = sprintf(
+            "%s\nType: %s\nSurface: %s m²\nPièces: %d\nVille: %s",
+            $promptTemplate,
+            e($validated['type']),
+            e($validated['surface']),
+            (int) $validated['pieces'],
+            e($validated['ville'])
+        );
 
-        return response()->json(['annonce' => $annonce]);
+        try {
+            $output = $this->openIARequest->execute($model, $roleSystem, $prompt, (float) $temperature);
+            Log::info("Réponse brute de l'IA : " . $output);
+
+            return response()->json(['annonce' => $output]);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la génération de l\'annonce : ' . $e->getMessage());
+            return response()->json(['error' => 'Erreur lors de la génération de l\'annonce.'], 500);
+        }
     }
+
 
 
     /**
