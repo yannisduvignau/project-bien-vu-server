@@ -59,10 +59,10 @@ class IAController extends Controller
             Log::info("Réponse brute de l'IA : " . $output);
 
             $decodedOutput = json_decode($output, true);
-            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decodedOutput)) {
-                Log::error("Réponse JSON invalide : " . $output);
-                return response()->json(['error' => 'Réponse de l\'IA mal formatée.'], 500);
-            }
+            // if (json_last_error() !== JSON_ERROR_NONE || !is_array($decodedOutput)) {
+            //     Log::error("Réponse JSON invalide : " . $output);
+            //     return response()->json(['error' => 'Réponse de l\'IA mal formatée.'], 500);
+            // }
 
             return response()->json($decodedOutput);
         } catch (\Throwable $e) {
@@ -98,10 +98,10 @@ class IAController extends Controller
             Log::info("Réponse brute de l'IA : " . $output);
 
             $decodedOutput = json_decode($output, true);
-            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decodedOutput)) {
-                Log::error("Réponse JSON invalide : " . $output);
-                return response()->json(['error' => 'Réponse de l\'IA mal formatée.'], 500);
-            }
+            // if (json_last_error() !== JSON_ERROR_NONE || !is_array($decodedOutput)) {
+            //     Log::error("Réponse JSON invalide : " . $output);
+            //     return response()->json(['error' => 'Réponse de l\'IA mal formatée.'], 500);
+            // }
 
             return response()->json($decodedOutput);
         } catch (\Throwable $e) {
