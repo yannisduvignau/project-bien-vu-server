@@ -6,6 +6,7 @@ use App\Http\Controllers\Scraping\FonciaScraperController;
 use App\Http\Controllers\IAController;
 use App\Http\Controllers\Scraping\LeboncoinScraperController;
 use App\Http\Controllers\Scraping\LogicimmoScraperController;
+use App\Http\Controllers\ScrapController;
 use App\Http\Controllers\Scraping\SelogerScraperController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -26,8 +27,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('ia')
     ->name('ia.')
     ->group(function () {
-        Route::post('/analyse', [IAController::class, 'analyserAnnonce'])->name('analyse');
-        Route::post('/estimation', [IAController::class, 'estimerPrix'])->name('estimation');
+        Route::post('/analyse/description', [IAController::class, 'analyserAnnonce'])->name('analyse');
+        Route::post('/analyse/url', [ScrapController::class, 'analyserAnnonce'])->name('analyse');
+        Route::post('/estimation/description', [IAController::class, 'estimerPrix'])->name('estimation');
+        Route::post('/estimation/url', [ScrapController::class, 'estimerPrix'])->name('estimation');
         Route::post('/generation', [IAController::class, 'genererAnnonce'])->name('generation');
     });
 
