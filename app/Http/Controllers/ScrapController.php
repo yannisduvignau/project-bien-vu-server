@@ -10,12 +10,34 @@ use Symfony\Component\DomCrawler\Crawler;
 use App\Actions\OpenAIRequestAction;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @OA\Info(
+ *      version="1.0.0",
+ *      title="Laravel BienVu API Documentation",
+ *      description="Documentation de l'API BienVu avec Swagger"
+ * )
+ *
+ * @OA\PathItem(path="/api")
+ */
 class ScrapController
 {
     public function __construct(
         private OpenAIRequestAction $openIARequest,
     ) {}
 
+    /**
+     * Analyse d'une annonce à l'aide d'une url
+     *
+     * @OA\Post(
+     *      path="/api/ia/analyse/url",
+     *      tags={"Analyse"},
+     *      summary="Analyse d'une annonce à l'aide d'une url",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Succès"
+     *      )
+     * )
+     */
     public function analyserAnnonce(ScrapingRequest $request)
     {
         $validated = $request->validated();
@@ -68,7 +90,19 @@ class ScrapController
         }
     }
 
-
+    /**
+     * Estimation d'une annonce à l'aide d'une url
+     *
+     * @OA\Post(
+     *      path="/api/ia/estimation/url",
+     *      tags={"Estimation"},
+     *      summary="Estimation d'une annonce à l'aide d'une url",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Succès"
+     *      )
+     * )
+     */
     public function estimerPrix(ScrapingRequest $request)
     {
         $validated = $request->validated();

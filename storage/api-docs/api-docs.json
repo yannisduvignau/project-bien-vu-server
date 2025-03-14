@@ -1,0 +1,105 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Laravel BienVu API Documentation",
+        "description": "Documentation de l'API BienVu avec Swagger",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/api"
+        }
+    ],
+    "paths": {
+        "/api": {},
+        "/api/ia/analyse/description": {
+            "post": {
+                "tags": [
+                    "Analyse"
+                ],
+                "summary": "Analyse d'une annonce à l'aide d'une description",
+                "description": "Analyse d'une annonce à l'aide d'une description",
+                "operationId": "7424f7aa46a4e88110b388bf6f697071",
+                "responses": {
+                    "200": {
+                        "description": "Succès"
+                    }
+                }
+            }
+        },
+        "/api/ia/estimation/description": {
+            "post": {
+                "tags": [
+                    "Estimation"
+                ],
+                "summary": "Estimation d'une annonce à l'aide d'une description",
+                "description": "Estimation d'une annonce à l'aide d'une description",
+                "operationId": "1d787bd39239118b4c382d239b917882",
+                "responses": {
+                    "200": {
+                        "description": "Succès"
+                    }
+                }
+            }
+        },
+        "/api/ia/generation": {
+            "post": {
+                "tags": [
+                    "Génération"
+                ],
+                "summary": "Génération d'une annonce à l'aide de caractéristiques",
+                "description": "Génération d'une annonce à l'aide de caractéristiques",
+                "operationId": "4c882208a81dfa101b26da0d8179a295",
+                "responses": {
+                    "200": {
+                        "description": "Succès"
+                    }
+                }
+            }
+        },
+        "/api/ia/analyse/url": {
+            "post": {
+                "tags": [
+                    "Analyse"
+                ],
+                "summary": "Analyse d'une annonce à l'aide d'une url",
+                "description": "Analyse d'une annonce à l'aide d'une url",
+                "operationId": "b9c8b141d611d78ade6f49c7a97c9d5c",
+                "responses": {
+                    "200": {
+                        "description": "Succès"
+                    }
+                }
+            }
+        },
+        "/api/ia/estimation/url": {
+            "post": {
+                "tags": [
+                    "Estimation"
+                ],
+                "summary": "Estimation d'une annonce à l'aide d'une url",
+                "description": "Estimation d'une annonce à l'aide d'une url",
+                "operationId": "d71638ff2f4b6c6e287ec95b49bb5892",
+                "responses": {
+                    "200": {
+                        "description": "Succès"
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Analyse",
+            "description": "Analyse"
+        },
+        {
+            "name": "Estimation",
+            "description": "Estimation"
+        },
+        {
+            "name": "Génération",
+            "description": "Génération"
+        }
+    ]
+}
