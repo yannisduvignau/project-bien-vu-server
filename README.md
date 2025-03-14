@@ -1,4 +1,4 @@
-# Laravel Server
+# Laravel Server BienVu App
 
 ## Description du projet
 Ce projet est une API RESTful construite avec Laravel, un framework PHP puissant et flexible. Il est conçu pour fournir une architecture robuste et évolutive, intégrant la documentation API avec Swagger L5.
