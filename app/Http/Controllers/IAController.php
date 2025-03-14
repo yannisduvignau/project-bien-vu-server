@@ -37,6 +37,19 @@ class IAController extends Controller
     //     return response()->json($response);
     // }
 
+    /**
+     * Analyse d'une annonce à l'aide d'une description
+     *
+     * @OA\Post(
+     *      path="/api/ia/analyse/description",
+     *      tags={"Analyse"},
+     *      summary="Analyse d'une annonce à l'aide d'une description",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Succès"
+     *      )
+     * )
+     */
     public function analyserAnnonce(AnalyserRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -86,9 +99,18 @@ class IAController extends Controller
     }
 
 
-
     /**
-     * POST : Estimate the price of a property by extracting information from a text.
+     * Estimation d'une annonce à l'aide d'une description
+     *
+     * @OA\Post(
+     *      path="/api/ia/estimation/description",
+     *      tags={"Estimation"},
+     *      summary="Estimation d'une annonce à l'aide d'une description",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Succès"
+     *      )
+     * )
      */
     public function estimerPrix(EstimerRequest $request): JsonResponse
     {
@@ -125,7 +147,17 @@ class IAController extends Controller
     }
 
     /**
-     * POST : Generate an optimised property ad text.
+     * Génération d'une annonce à l'aide de caractéristiques
+     *
+     * @OA\Post(
+     *      path="/api/ia/generation",
+     *      tags={"Génération"},
+     *      summary="Génération d'une annonce à l'aide de caractéristiques",
+     *      @OA\Response(
+     *          response=200,
+     *          description="Succès"
+     *      )
+     * )
      */
     public function genererAnnonce(GenererRequest $request): JsonResponse
     {
