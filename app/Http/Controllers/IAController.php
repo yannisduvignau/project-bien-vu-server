@@ -52,17 +52,31 @@ class IAController extends Controller
             return response()->json(['error' => 'Configuration du serveur incorrecte.'], 500);
         }
 
+        // Création du prompt final
         $prompt = sprintf("%s\nAnnonce : %s", $promptBase, $description);
 
         try {
-            $output = $this->openIARequest->execute($model, $roleSystem, $prompt, (float) $temperature);
+            // Envoi de la requête à OpenAI
+            $output = $this->openIARequest->execute($model, $roleSystem, $prompt, $temperature);
             Log::info("Réponse brute de l'IA : " . $output);
 
-            $decodedOutput = json_decode($output, true);
-            // if (json_last_error() !== JSON_ERROR_NONE || !is_array($decodedOutput)) {
-            //     Log::error("Réponse JSON invalide : " . $output);
-            //     return response()->json(['error' => 'Réponse de l\'IA mal formatée.'], 500);
-            // }
+            // Vérification et décodage de la réponse JSON
+            $cleanOutput = trim($output, "```json \n"); // Nettoie les éventuelles balises Markdown
+            $decodedOutput = json_decode($cleanOutput, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decodedOutput)) {
+                Log::error("Réponse JSON invalide : " . json_last_error_msg());
+                return response()->json(['error' => 'Réponse de l\'IA mal formatée.'], 500);
+            }
+
+            // Vérification des clés attendues
+            $requiredKeys = ['analysis', 'reliability'];
+            foreach ($requiredKeys as $key) {
+                if (!array_key_exists($key, $decodedOutput)) {
+                    Log::error("Réponse JSON incomplète : clé manquante '$key'.");
+                    return response()->json(['error' => 'Réponse de l\'IA incomplète.'], 500);
+                }
+            }
 
             return response()->json($decodedOutput);
         } catch (\Throwable $e) {
